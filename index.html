@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SALTANAT 45 - Virtual Farm</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;font-family:Arial,sans-serif;background:#9fc7e6}
+#scene{position:fixed;inset:0}
+#header{
+ position:fixed;top:10px;left:10px;right:10px;
+ display:flex;justify-content:space-between;gap:8px;
+ pointer-events:none;color:white
+}
+.panel{
+ background:#143c2bdf;padding:10px 12px;
+ border-radius:12px;font-size:12px;line-height:1.5
+}
+h3{margin:0;color:#f4d47c;font-size:17px}
+#controls{
+ position:fixed;bottom:18px;left:14px;
+ display:grid;grid-template-columns:52px 52px 52px;
+ grid-template-rows:52px 52px;gap:6px
+}
+button{
+ background:#153d2bdd;color:white;
+ border:1px solid #ffffff80;border-radius:13px;
+ font-size:20px;font-weight:bold;touch-action:none
+}
+#up{grid-column:2}
+#left{grid-column:1;grid-row:2}
+#down{grid-column:2;grid-row:2}
+#right{grid-column:3;grid-row:2}
+#overview{
+ position:fixed;right:14px;bottom:25px;
+ padding:13px 10px;font-size:12px
+}
+#hint{
+ position:fixed;right:10px;top:100px;
+ color:white;background:#0006;padding:8px;
+ border-radius:8px;font-size:11px
+}
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js"
+  }
+}
+</script>
+</head>
+
+<body>
+<div id="scene"></div>
+
+<div id="header">
+  <div class="panel">
+    <h3>SALTANAT 45</h3>
+    VIRTUAL FARM EXPLORER<br>
+    જમીન: 310 × 140 મીટર<br>
+    મુખ્ય પ્રવેશ: ઉત્તર
+  </div>
+  <div class="panel" id="status">
+    ▲ ▼ થી ચાલો<br>
+    સ્ક્રીન ખેંચીને આજુબાજુ જુઓ
+  </div>
+</div>
+
+<div id="hint">આંગળીથી સ્ક્રીન ખેંચો<br>360° જોવા માટે</div>
+
+<div id="controls">
+  <button id="up">▲</button>
+  <button id="left">◀</button>
+  <button id="down">▼</button>
+  <button id="right">▶</button>
+</div>
+
+<button id="overview">🚁 ડ્રોન વ્યૂ</button>
+
+<script type="module">
+import * as THREE from 'three';
+
+// 1. મૂળ 3D સેટઅપ
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x9fc8e6);
+scene.fog = new THREE.Fog(0x9fc8e6, 180, 500);
+
+const camera = new THREE.PerspectiveCamera(
+  70, innerWidth / innerHeight, 0.1, 1000
+);
+camera.position.set(0, 1.7, 52);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
+renderer.shadowMap.enabled = true;
+document.querySelector("#scene").appendChild(renderer.domElement);
+
+// 2. સૂર્ય અને પ્રકાશ
+scene.add(new THREE.HemisphereLight(0xe5f4ff, 0x53643b, 2));
+
+const sun = new THREE.DirectionalLight(0xfff0d0, 2.2);
+sun.position.set(-70, 130, 60);
+sun.castShadow = true;
+scene.add(sun);
+
+// 3. મટિરિયલ અને વસ્તુઓ બનાવવાના ફંક્શન
+function material(color) {
+  return new THREE.MeshStandardMaterial({
+    color: color,
+    roughness: 0.9
+  });
+}
+
+function box(x,y,z,w,h,d,color) {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(w,h,d),
+    material(color)
+  );
+  mesh.position.set(x,y,z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+  return mesh;
+}
+
+// દિશાઓ:
+// ઉત્તર = Z -70
+// દક્ષિણ = Z +70
+// પૂર્વ = X +155
+// પશ્ચિમ = X -155
+
+// 4. 310 x 140 મીટરનું ખેતર
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(310,140),
+  material(0x668b48)
+);
+ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// 5. ખેતરની ચારેય બાજુની વાડ
+const fenceColor = 0xe8d9b5;
+
+for(let x=-155; x<=155; x+=5) {
+  box(x,.65,-70,.22,1.3,.22,fenceColor);
+  box(x,.65,70,.22,1.3,.22,fenceColor);
+}
+
+for(let z=-65; z<=65; z+=5) {
+  box(-155,.65,z,.22,1.3,.22,fenceColor);
+  box(155,.65,z,.22,1.3,.22,fenceColor);
+}
+
+// વાડના આડા ભાગ
+box(0,.95,-70,310,.12,.12,fenceColor);
+box(0,.95,70,310,.12,.12,fenceColor);
+box(-155,.95,0,.12,.12,140,fenceColor);
+box(155,.95,0,.12,.12,140,fenceColor);
+
+// 6. ઉત્તર બાજુ મુખ્ય પ્રવેશદ્વાર
+box(-5,1.1,-70,.7,2.2,.7,0xb9a16a);
+box(5,1.1,-70,.7,2.2,.7,0xb9a16a);
+box(0,2.2,-70,10,.35,.7,0x67452a);
+box(0,3,-70,8,.7,.25,0x245237);
+
+// 7. ખેતરનો મુખ્ય રસ્તો
+box(0,.025,0,5,.05,138,0xb8a078);
+
+// 8. ફાર્મહાઉસ
+const hx = -28;
+const hz = -31;
+
+// ઘરનો પાયો અને દીવાલો
+box(hx,.2,hz,24,.4,18,0xcab997);
+box(hx,2,hz,22,3.5,16,0xeee0c4);
+
+// ઘરની આગળની લોબી
+box(hx,.2,hz+10,26,.3,5,0xb19a70);
+
+// લોબીના થાંભલા
+for(const x of [hx-10,hx-4,hx+4,hx+10]) {
+  box(x,1.6,hz+10,.3,2.8,.3,0xf4eddd);
+}
+
+// ઘરની છત
+const roof = new THREE.Mesh(
+  new THREE.ConeGeometry(15,4.5,4),
+  material(0x934d35)
+);
+roof.position.set(hx,4.5,hz);
+roof.rotation.y = Math.PI/4;
+roof.castShadow = true;
+scene.add(roof);
+
+// દરવાજો અને બારીઓ
+box(hx,1.2,hz+8.1,2,2.4,.15,0x69472e);
+
+for(const x of [hx-7,hx+7]) {
+  box(x,2,hz+8.1,2.5,1.4,.15,0x83c4d6);
+}
+
+// 9. વૃક્ષ બનાવવાનું ફંક્શન
+function tree(x,z,s=1) {
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(.2*s,.32*s,2*s,7),
+    material(0x70492c)
+  );
+  trunk.position.set(x,s,z);
+  trunk.castShadow = true;
+  scene.add(trunk);
+
+  const crown = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(1.6*s,1),
+    material(0x39733a)
+  );
+  crown.position.set(x,2.6*s,z);
+  crown.castShadow = true;
+  scene.add(crown);
+}
+
+// 10. ફળબગીચો
+for(let r=0;r<5;r++) {
+  for(let c=0;c<8;c++) {
+    tree(-116+c*10,-48+r*11,.8);
+  }
+}
+
+// 11. તળાવ
+const water = new THREE.Mesh(
+  new THREE.CylinderGeometry(13,13,.2,40),
+  new THREE.MeshStandardMaterial({
+    color:0x359dbb,
+    roughness:.25
+  })
+);
+water.position.set(-95,.06,38);
+scene.add(water);
+
+// 12. શાકભાજીના ક્યારાં
+for(let r=0;r<4;r++) {
+  for(let c=0;c<5;c++) {
+    const x=42+c*12;
+    const z=-48+r*13;
+
+    box(x,.12,z,8,.22,5,0x795b3a);
+
+    for(let i=0;i<4;i++) {
+      const plant = new THREE.Mesh(
+        new THREE.SphereGeometry(.45,7,6),
+        material(0x4b853a)
+      );
+      plant.position.set(x-2+i*1.3,.65,z);
+      plant.scale.y=1.3;
+      scene.add(plant);
+    }
+  }
+}
+
+// 13. સોલર પેનલ
+for(let r=0;r<2;r++) {
+  for(let c=0;c<4;c++) {
+    const panel = box(
+      6+c*3,1.15,-34+r*4,
+      2.5,.12,2.8,0x263e60
+    );
+    panel.rotation.x=-.15;
+  }
+}
+
+// 14. જગ્યાનાં નામના બોર્ડ
+function label(text,x,y,z) {
+  const canvas=document.createElement("canvas");
+  canvas.width=512;
+  canvas.height=128;
+
+  const ctx=canvas.getContext("2d");
+  ctx.fillStyle="#153d2be8";
+  ctx.fillRect(0,0,512,128);
+  ctx.strokeStyle="#f1d17b";
+  ctx.lineWidth=5;
+  ctx.strokeRect(4,4,504,120);
+  ctx.fillStyle="white";
+  ctx.font="bold 42px sans-serif";
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  ctx.fillText(text,256,64);
+
+  const texture=new THREE.CanvasTexture(canvas);
+  const sprite=new THREE.Sprite(
+    new THREE.SpriteMaterial({map:texture})
+  );
+  sprite.position.set(x,y,z);
+  sprite.scale.set(16,4,1);
+  scene.add(sprite);
+}
+
+label("NORTH ENTRY",0,5,-81);
+label("FARMHOUSE",hx,8,hz);
+label("ORCHARD",-85,7,-20);
+label("WATER POND",-95,6,20);
+
+// 15. ચાલવા માટેના કંટ્રોલ
+let yaw=0;
+let pitch=0;
+let overview=false;
+let dragging=false;
+let lastX=0;
+let lastY=0;
+
+const keys={
+  forward:false,
+  back:false,
+  left:false,
+  right:false
+};
+
+const mapping={
+  up:"forward",
+  down:"back",
+  left:"left",
+  right:"right"
+};
+
+for(const id of Object.keys(mapping)) {
+  const button=document.getElementById(id);
+  const key=mapping[id];
+
+  button.addEventListener("pointerdown",e=>{
+    e.preventDefault();
+    keys[key]=true;
+  });
+
+  for(const event of [
+    "pointerup","pointercancel","pointerleave"
+  ]) {
+    button.addEventListener(event,()=>{
+      keys[key]=false;
+    });
+  }
+}
+
+// સ્ક્રીન ખેંચીને આજુબાજુ જોવું
+renderer.domElement.addEventListener("pointerdown",e=>{
+  dragging=true;
+  lastX=e.clientX;
+  lastY=e.clientY;
+});
+
+addEventListener("pointerup",()=>dragging=false);
+
+renderer.domElement.addEventListener("pointermove",e=>{
+  if(!dragging || overview) return;
+
+  yaw-=(e.clientX-lastX)*.004;
+  pitch-=(e.clientY-lastY)*.003;
+
+  pitch=Math.max(-1,Math.min(1,pitch));
+
+  lastX=e.clientX;
+  lastY=e.clientY;
+});
+
+// 16. ડ્રોન વ્યૂ બટન
+document.getElementById("overview").onclick=()=>{
+  overview=!overview;
+
+  if(overview) {
+    camera.position.set(0,145,12);
+    camera.lookAt(0,0,0);
+    document.getElementById("status").innerHTML=
+      "ડ્રોન વ્યૂ<br>આખું ખેતર";
+  } else {
+    camera.position.set(0,1.7,52);
+    yaw=0;
+    pitch=0;
+    document.getElementById("status").innerHTML=
+      "બટનથી ચાલો.<br>સ્ક્રીન ખેંચીને જુઓ";
+  }
+};
+
+// કમ્પ્યુટર પર કીબોર્ડ કંટ્રોલ
+addEventListener("keydown",e=>{
+  if(e.key==="w"||e.key==="ArrowUp") keys.forward=true;
+  if(e.key==="s"||e.key==="ArrowDown") keys.back=true;
+  if(e.key==="a"||e.key==="ArrowLeft") keys.left=true;
+  if(e.key==="d"||e.key==="ArrowRight") keys.right=true;
+});
+
+addEventListener("keyup",e=>{
+  if(e.key==="w"||e.key==="ArrowUp") keys.forward=false;
+  if(e.key==="s"||e.key==="ArrowDown") keys.back=false;
+  if(e.key==="a"||e.key==="ArrowLeft") keys.left=false;
+  if(e.key==="d"||e.key==="ArrowRight") keys.right=false;
+});
+
+// 17. ગેમ લૂપ
+let lastTime=performance.now();
+
+function animate(now) {
+  requestAnimationFrame(animate);
+
+  const dt=Math.min((now-lastTime)/1000,.05);
+  lastTime=now;
+
+  if(!overview) {
+    camera.rotation.order="YXZ";
+    camera.rotation.y=yaw;
+    camera.rotation.x=pitch;
+
+    const forward=new THREE.Vector3(
+      -Math.sin(yaw),0,-Math.cos(yaw)
+    );
+
+    const right=new THREE.Vector3(
+      Math.cos(yaw),0,-Math.sin(yaw)
+    );
+
+    const speed=dt*15;
+
+    if(keys.forward) camera.position.addScaledVector(forward,speed);
+    if(keys.back) camera.position.addScaledVector(forward,-speed);
+    if(keys.left) camera.position.addScaledVector(right,-speed);
+    if(keys.right) camera.position.addScaledVector(right,speed);
+
+    camera.position.x=THREE.MathUtils.clamp(
+      camera.position.x,-151,151
+    );
+
+    camera.position.z=THREE.MathUtils.clamp(
+      camera.position.z,-68,68
+    );
+
+    camera.position.y=1.7;
+  }
+
+  renderer.render(scene,camera);
+}
+
+animate(performance.now());
+
+// સ્ક્રીનના કદ પ્રમાણે 3D વ્યૂ
+addEventListener("resize",()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
